@@ -165,6 +165,8 @@
     user-select: none;
   }
   .tile:hover:not(.used) { background: #2944e0; transform: scale(1.03); }
+  .board.edit-mode .tile:not(.used) { border-color: rgba(100,255,180,.35); cursor: cell; }
+  .board.edit-mode .tile:not(.used):hover { background: #1a4a2a; border-color: rgba(100,255,180,.7); }
   .tile.used {
     background: rgba(10,17,114,.5);
     color: transparent;
@@ -437,7 +439,13 @@
   </div>
 </div>
 
-<div class="turn-bar">TURN: <span id="turn-label">Team Alpha</span> &nbsp;·&nbsp; <a href="#" id="edit-teams-link" style="color:rgba(255,255,255,.35);font-size:.75rem;letter-spacing:1px;">edit teams</a> &nbsp;·&nbsp; <a href="#" id="reset-link" style="color:rgba(255,100,100,.45);font-size:.75rem;letter-spacing:1px;">reset game</a></div>
+<div class="turn-bar">
+  <span id="play-mode-bar">TURN: <span id="turn-label">Team Alpha</span></span>
+  <span id="edit-mode-bar" style="display:none;color:var(--gold);letter-spacing:2px;">✏️ EDIT MODE — tap any tile to edit</span>
+  &nbsp;·&nbsp; <a href="#" id="edit-mode-toggle" style="color:rgba(100,200,255,.55);font-size:.75rem;letter-spacing:1px;">✏️ edit mode</a>
+  &nbsp;·&nbsp; <a href="#" id="edit-teams-link" style="color:rgba(255,255,255,.35);font-size:.75rem;letter-spacing:1px;">edit teams</a>
+  &nbsp;·&nbsp; <a href="#" id="reset-link" style="color:rgba(255,100,100,.45);font-size:.75rem;letter-spacing:1px;">reset game</a>
+</div>
 
 <!-- Board -->
 <div class="board-wrap">
@@ -548,6 +556,7 @@ let cells = {}; // key: "col_row" → { qtext, answer, imgData, used }
 let teams = ['Team Alpha', 'Team Beta'];
 let scores = [0, 0];
 let currentTurn = 0; // 0 or 1
+let editMode = false;
 
 // editing tracking
 let editTarget = null; // { col, row }
@@ -628,9 +637,18 @@ function buildBoard() {
           pressTimer = null;
         }, { passive: true });
 
-        // Desktop: click to play, double-click to edit
-        tile.onclick = (e) => openQuestion(c, r);
-        tile.ondblclick = (e) => { e.stopPropagation(); openEdit(c, r); };
+        // Desktop: delay single click to allow double-click to register
+        let clickTimer = null;
+        tile.onclick = (e) => {
+          if (editMode) { openEdit(c, r); return; }
+          clearTimeout(clickTimer);
+          clickTimer = setTimeout(() => openQuestion(c, r), 250);
+        };
+        tile.ondblclick = (e) => {
+          e.stopPropagation();
+          clearTimeout(clickTimer);
+          openEdit(c, r);
+        };
       }
       board.appendChild(tile);
     }
@@ -820,6 +838,32 @@ document.getElementById('teams-save').onclick = () => {
   showToast('Teams updated!');
 };
 document.getElementById('teams-close').onclick = () => document.getElementById('teams-modal').classList.remove('open');
+
+function toggleEditMode() {
+  editMode = !editMode;
+  const toggle = document.getElementById('edit-mode-toggle');
+  const board = document.getElementById('board');
+  const playBar = document.getElementById('play-mode-bar');
+  const editBar = document.getElementById('edit-mode-bar');
+  if (editMode) {
+    toggle.textContent = '🎮 play mode';
+    toggle.style.color = 'rgba(100,255,180,.7)';
+    board.classList.add('edit-mode');
+    playBar.style.display = 'none';
+    editBar.style.display = '';
+  } else {
+    toggle.textContent = '✏️ edit mode';
+    toggle.style.color = 'rgba(100,200,255,.55)';
+    board.classList.remove('edit-mode');
+    playBar.style.display = '';
+    editBar.style.display = 'none';
+  }
+}
+
+document.getElementById('edit-mode-toggle').onclick = (e) => {
+  e.preventDefault();
+  toggleEditMode();
+};
 
 document.getElementById('reset-link').onclick = (e) => {
   e.preventDefault();

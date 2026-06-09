@@ -457,6 +457,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-gold" id="reveal-btn">Reveal Answer</button>
+      <button class="btn btn-ghost" id="edit-from-q-btn">✏️ Edit</button>
     </div>
     <div class="score-btns" id="score-btns">
       <button class="score-btn correct" id="correct-t0"></button>
@@ -582,9 +583,31 @@ function buildBoard() {
       tile.id = `tile-${c}-${r}`;
       if (!cell.used) {
         tile.textContent = `$${POINTS[r]}`;
-        tile.onclick = () => openQuestion(c, r);
+        tile.title = 'Tap to play · Hold to edit';
+
+        // Long-press for touch (iPad/mobile)
+        let pressTimer = null;
+        tile.addEventListener('touchstart', (e) => {
+          pressTimer = setTimeout(() => {
+            pressTimer = null;
+            openEdit(c, r);
+          }, 500);
+        }, { passive: true });
+        tile.addEventListener('touchend', (e) => {
+          if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+            openQuestion(c, r);
+          }
+        });
+        tile.addEventListener('touchmove', () => {
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }, { passive: true });
+
+        // Desktop: click to play, double-click to edit
+        tile.onclick = (e) => openQuestion(c, r);
         tile.ondblclick = (e) => { e.stopPropagation(); openEdit(c, r); };
-        tile.title = 'Click to play · Double-click to edit';
       }
       board.appendChild(tile);
     }
@@ -629,7 +652,7 @@ function openQuestion(col, row) {
     const p = document.createElement('p');
     p.className = 'q-text';
     p.style.color = 'rgba(255,255,255,.35)';
-    p.textContent = `$${POINTS[row]} — No question set. Double-click the tile to edit.`;
+    p.textContent = `$${POINTS[row]} — No question set. Hold the tile to edit.`;
     content.appendChild(p);
   }
 
@@ -646,6 +669,12 @@ function openQuestion(col, row) {
 
   document.getElementById('q-modal').classList.add('open');
 }
+
+document.getElementById('edit-from-q-btn').onclick = () => {
+  if (!activeCell) return;
+  closeQModal(false);
+  openEdit(activeCell.col, activeCell.row);
+};
 
 document.getElementById('reveal-btn').onclick = () => {
   document.getElementById('answer-box').classList.add('visible');

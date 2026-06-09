@@ -448,6 +448,7 @@
   &nbsp;·&nbsp; <a href="#" id="reset-link" style="color:rgba(255,100,100,.45);font-size:.75rem;letter-spacing:1px;">reset game</a>
   &nbsp;·&nbsp; <a href="#" id="export-link" style="color:rgba(180,255,180,.45);font-size:.75rem;letter-spacing:1px;">⬇ export</a>
   &nbsp;·&nbsp; <a href="#" id="import-link" style="color:rgba(180,255,180,.45);font-size:.75rem;letter-spacing:1px;">⬆ import</a>
+  &nbsp;·&nbsp; <a href="#" id="clear-link" style="color:rgba(255,160,80,.45);font-size:.75rem;letter-spacing:1px;">🗑 clear all</a>
   <input type="file" id="import-file-input" accept=".json" style="display:none">
 </div>
 
@@ -985,6 +986,25 @@ document.getElementById('import-file-input').onchange = (e) => {
   };
   reader.readAsText(file);
   e.target.value = '';
+};
+
+// ── CLEAR ALL ──
+document.getElementById('clear-link').onclick = (e) => {
+  e.preventDefault();
+  if (confirm('Clear all questions, answers and images? Categories and team names will be kept.')) {
+    for (const k in cells) {
+      cells[k].qtext = '';
+      cells[k].answer = '';
+      cells[k].imgData = null;
+      cells[k].used = false;
+    }
+    scores = [0, 0];
+    currentTurn = 0;
+    buildBoard();
+    updateScoreboard();
+    saveState();
+    showToast('All questions cleared!');
+  }
 };
 
 // ── BOOT ──

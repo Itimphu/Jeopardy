@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeopardy!</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #0a1172;
+    --blue-mid: #1a2ab8;
+    --blue-light: #2233cc;
+    --gold: #f5c518;
+    --gold-dark: #d4a017;
+    --white: #f0f0f0;
+    --gray: #888;
+    --green: #1db954;
+    --red: #e63946;
+    --card-h: 100px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--blue);
+    font-family: 'Barlow Condensed', sans-serif;
+    min-height: 100vh;
+    color: var(--white);
+    overflow-x: hidden;
+  }
+
+  /* ── SCANLINE OVERLAY ── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,20,.08) 3px, rgba(0,0,20,.08) 4px);
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    padding: 18px 20px 10px;
+    position: relative;
+  }
+  header h1 {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    color: var(--gold);
+    letter-spacing: 4px;
+    text-shadow: 0 0 30px rgba(245,197,24,.5), 3px 3px 0 #7a5e00;
+  }
+  header p {
+    font-size: .85rem;
+    color: rgba(255,255,255,.45);
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  /* ── SCOREBOARD ── */
+  .scoreboard {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 10px 20px 14px;
+    flex-wrap: wrap;
+  }
+  .team-card {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px;
+    padding: 10px 24px;
+    min-width: 160px;
+    text-align: center;
+    position: relative;
+    transition: border-color .3s;
+  }
+  .team-card.active-turn { border-color: var(--gold); box-shadow: 0 0 14px rgba(245,197,24,.3); }
+  .team-card .team-name {
+    font-size: .7rem;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,.55);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .team-card .team-score {
+    font-family: 'Anton', sans-serif;
+    font-size: 2.2rem;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .team-card .team-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  /* ── TURN INDICATOR ── */
+  .turn-bar {
+    text-align: center;
+    font-size: .8rem;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,.5);
+    margin-bottom: 10px;
+  }
+  .turn-bar span { color: var(--gold); font-weight: 700; }
+
+  /* ── BOARD ── */
+  .board-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 12px 24px;
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .cat-header {
+    background: var(--blue-mid);
+    border: 2px solid rgba(255,255,255,.15);
+    border-radius: 8px;
+    text-align: center;
+    padding: 12px 8px;
+    font-size: clamp(.75rem, 2vw, .95rem);
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--white);
+    cursor: pointer;
+    transition: background .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .cat-header:hover { background: #1e35cc; }
+  .cat-header .edit-hint {
+    font-size: .6rem;
+    color: rgba(255,255,255,.3);
+    display: block;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  .tile {
+    background: var(--blue-light);
+    border: 2px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    text-align: center;
+    padding: 10px;
+    height: var(--card-h);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(1.3rem, 3.5vw, 1.9rem);
+    color: var(--gold);
+    text-shadow: 1px 1px 0 #7a5e00;
+    transition: transform .15s, background .2s, opacity .2s;
+    position: relative;
+    user-select: none;
+  }
+  .tile:hover:not(.used) { background: #2944e0; transform: scale(1.03); }
+  .tile.used {
+    background: rgba(10,17,114,.5);
+    color: transparent;
+    border-color: rgba(255,255,255,.05);
+    cursor: default;
+  }
+  .tile.used::after {
+    content: '✓';
+    color: rgba(255,255,255,.18);
+    font-size: 1.4rem;
+    font-family: sans-serif;
+  }
+
+  /* ── MODAL BASE ── */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(5,10,60,.88);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--blue-mid);
+    border: 2px solid rgba(255,255,255,.15);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 28px 28px 24px;
+    position: relative;
+    animation: popIn .25s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes popIn { from { transform: scale(.88); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .modal h2 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .modal .pts-badge {
+    display: inline-block;
+    background: var(--gold);
+    color: #000;
+    font-family: 'Anton', sans-serif;
+    font-size: 1rem;
+    padding: 2px 12px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+
+  .q-content {
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .q-text {
+    font-size: clamp(1rem, 3vw, 1.3rem);
+    text-align: center;
+    line-height: 1.4;
+    color: var(--white);
+  }
+  .q-img {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+
+  /* answer reveal */
+  .answer-section {
+    background: rgba(0,0,0,.2);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 18px;
+    display: none;
+  }
+  .answer-section.visible { display: block; }
+  .answer-section h4 { font-size: .7rem; letter-spacing: 2px; color: rgba(255,255,255,.4); margin-bottom: 4px; }
+  .answer-section p { font-size: 1.1rem; font-weight: 600; color: var(--gold); }
+
+  /* scoring buttons */
+  .score-btns {
+    display: none;
+    gap: 10px;
+  }
+  .score-btns.visible { display: flex; flex-wrap: wrap; }
+  .score-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px 8px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .95rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform .12s, opacity .15s;
+  }
+  .score-btn:hover { transform: scale(1.04); }
+  .score-btn.correct { background: var(--green); color: #fff; }
+  .score-btn.wrong { background: var(--red); color: #fff; }
+  .score-btn.skip { background: rgba(255,255,255,.15); color: var(--white); }
+
+  /* action row */
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 9px 18px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .9rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: opacity .15s, transform .12s;
+  }
+  .btn:hover { transform: scale(1.03); }
+  .btn-gold { background: var(--gold); color: #000; }
+  .btn-ghost { background: rgba(255,255,255,.12); color: var(--white); }
+  .btn-close { background: rgba(255,0,0,.2); color: #ff8080; margin-left: auto; }
+
+  /* close X */
+  .x-close {
+    position: absolute; top: 14px; right: 16px;
+    background: none; border: none;
+    color: rgba(255,255,255,.4);
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: color .15s;
+  }
+  .x-close:hover { color: var(--white); }
+
+  /* ── EDIT MODAL ── */
+  .edit-modal .modal { max-width: 520px; }
+  label { display: block; font-size: .75rem; letter-spacing: 1.5px; color: rgba(255,255,255,.5); margin-bottom: 4px; margin-top: 14px; }
+  input[type=text], textarea {
+    width: 100%;
+    background: rgba(0,0,0,.25);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 6px;
+    color: var(--white);
+    font-family: 'Barlow', sans-serif;
+    font-size: .95rem;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input[type=text]:focus, textarea:focus { border-color: var(--gold); }
+  textarea { resize: vertical; min-height: 72px; }
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .file-btn {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: .85rem;
+    color: var(--white);
+    cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap;
+  }
+  .file-btn:hover { background: rgba(255,255,255,.18); }
+  .file-name { font-size: .8rem; color: rgba(255,255,255,.4); word-break: break-all; }
+  .preview-thumb {
+    max-width: 100%;
+    max-height: 140px;
+    border-radius: 6px;
+    margin-top: 8px;
+    display: none;
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: rgba(10,20,80,.95);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: .9rem;
+    color: var(--white);
+    z-index: 500;
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── WINNER SPLASH ── */
+  .winner-splash {
+    position: fixed; inset: 0;
+    background: rgba(5,10,60,.92);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+    padding: 20px;
+  }
+  .winner-splash.open { display: flex; }
+  .winner-splash h2 {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(2rem, 8vw, 4rem);
+    color: var(--gold);
+    letter-spacing: 4px;
+    animation: glow 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes glow {
+    from { text-shadow: 0 0 10px rgba(245,197,24,.4); }
+    to { text-shadow: 0 0 40px rgba(245,197,24,1), 0 0 80px rgba(245,197,24,.5); }
+  }
+  .winner-splash p { font-size: 1.2rem; color: rgba(255,255,255,.7); letter-spacing: 2px; }
+  .confetti-wrap { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .confetto {
+    position: absolute;
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    animation: fall linear infinite;
+  }
+  @keyframes fall {
+    from { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>JEOPARDY!</h1>
+  <p>CUSTOMIZE · COMPETE · CONQUER</p>
+</header>
+
+<!-- Scoreboard -->
+<div class="scoreboard">
+  <div class="team-card" id="card-0">
+    <div class="team-name">TEAM</div>
+    <div class="team-label" id="label-0">Team Alpha</div>
+    <div class="team-score" id="score-0">0</div>
+  </div>
+  <div class="team-card" id="card-1">
+    <div class="team-name">TEAM</div>
+    <div class="team-label" id="label-1">Team Beta</div>
+    <div class="team-score" id="score-1">0</div>
+  </div>
+</div>
+
+<div class="turn-bar">TURN: <span id="turn-label">Team Alpha</span> &nbsp;·&nbsp; <a href="#" id="edit-teams-link" style="color:rgba(255,255,255,.35);font-size:.75rem;letter-spacing:1px;">edit teams</a></div>
+
+<!-- Board -->
+<div class="board-wrap">
+  <div class="board" id="board"></div>
+</div>
+
+<!-- ── QUESTION MODAL ── -->
+<div class="modal-bg" id="q-modal">
+  <div class="modal">
+    <button class="x-close" id="q-close">✕</button>
+    <h2 id="q-cat">CATEGORY</h2>
+    <div class="pts-badge" id="q-pts">100 PTS</div>
+    <div class="q-content" id="q-content"></div>
+    <div class="answer-section" id="answer-box">
+      <h4>ANSWER</h4>
+      <p id="answer-text"></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gold" id="reveal-btn">Reveal Answer</button>
+    </div>
+    <div class="score-btns" id="score-btns">
+      <button class="score-btn correct" id="correct-t0"></button>
+      <button class="score-btn correct" id="correct-t1"></button>
+      <button class="score-btn wrong" id="wrong-t0"></button>
+      <button class="score-btn wrong" id="wrong-t1"></button>
+      <button class="score-btn skip" id="skip-btn">Skip (no points)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT CELL MODAL ── -->
+<div class="modal-bg edit-modal" id="edit-modal">
+  <div class="modal">
+    <button class="x-close" id="edit-close">✕</button>
+    <h2 id="edit-title">EDIT CELL</h2>
+    <div class="pts-badge" id="edit-pts-badge">100 PTS</div>
+
+    <label>QUESTION TEXT (optional if using image)</label>
+    <textarea id="edit-qtext" placeholder="Type the question…"></textarea>
+
+    <label>QUESTION IMAGE (optional)</label>
+    <div class="file-row">
+      <label class="file-btn" for="edit-img-input">📷 Upload Image</label>
+      <input type="file" id="edit-img-input" accept="image/*" style="display:none">
+      <span class="file-name" id="img-file-name">No file chosen</span>
+    </div>
+    <img class="preview-thumb" id="img-preview" src="" alt="">
+
+    <label>ANSWER</label>
+    <input type="text" id="edit-answer" placeholder="Enter the correct answer…">
+
+    <div class="modal-actions">
+      <button class="btn btn-gold" id="edit-save">Save</button>
+      <button class="btn btn-ghost" id="edit-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT CATEGORY MODAL ── -->
+<div class="modal-bg" id="cat-modal">
+  <div class="modal" style="max-width:380px">
+    <button class="x-close" id="cat-close">✕</button>
+    <h2>EDIT CATEGORY</h2>
+    <label>CATEGORY NAME</label>
+    <input type="text" id="cat-input" placeholder="e.g. World Geography">
+    <div class="modal-actions">
+      <button class="btn btn-gold" id="cat-save">Save</button>
+      <button class="btn btn-ghost" id="cat-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT TEAMS MODAL ── -->
+<div class="modal-bg" id="teams-modal">
+  <div class="modal" style="max-width:380px">
+    <button class="x-close" id="teams-close">✕</button>
+    <h2>EDIT TEAMS</h2>
+    <label>TEAM 1 NAME</label>
+    <input type="text" id="team0-input" placeholder="Team Alpha">
+    <label>TEAM 2 NAME</label>
+    <input type="text" id="team1-input" placeholder="Team Beta">
+    <div class="modal-actions">
+      <button class="btn btn-gold" id="teams-save">Save</button>
+      <button class="btn btn-ghost" id="teams-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── WINNER SPLASH ── -->
+<div class="winner-splash" id="winner-splash">
+  <div class="confetti-wrap" id="confetti-wrap"></div>
+  <h2 id="winner-text">TEAM WINS!</h2>
+  <p id="winner-sub">FINAL SCORE</p>
+  <button class="btn btn-gold" onclick="resetGame()" style="font-size:1.1rem;padding:12px 32px;margin-top:8px;">Play Again</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+const COLS = 3, ROWS = 3;
+const POINTS = [100, 200, 300];
+
+let categories = ['Category 1', 'Category 2', 'Category 3'];
+let cells = {}; // key: "col_row" → { qtext, answer, imgData, used }
+let teams = ['Team Alpha', 'Team Beta'];
+let scores = [0, 0];
+let currentTurn = 0; // 0 or 1
+
+// editing tracking
+let editTarget = null; // { col, row }
+let editCatTarget = null; // col index
+
+// question modal tracking
+let activeCell = null; // { col, row }
+
+// ── INIT CELLS ──
+for (let c = 0; c < COLS; c++)
+  for (let r = 0; r < ROWS; r++)
+    cells[`${c}_${r}`] = { qtext: '', answer: '', imgData: null, used: false };
+
+// ── BUILD BOARD ──
+function buildBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  for (let c = 0; c < COLS; c++) {
+    const hdr = document.createElement('div');
+    hdr.className = 'cat-header';
+    hdr.innerHTML = `${categories[c]}<span class="edit-hint">click to edit</span>`;
+    hdr.onclick = () => openCatEdit(c);
+    board.appendChild(hdr);
+  }
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const key = `${c}_${r}`;
+      const cell = cells[key];
+      const tile = document.createElement('div');
+      tile.className = 'tile' + (cell.used ? ' used' : '');
+      tile.id = `tile-${c}-${r}`;
+      if (!cell.used) {
+        tile.textContent = `$${POINTS[r]}`;
+        tile.onclick = () => openQuestion(c, r);
+        tile.ondblclick = (e) => { e.stopPropagation(); openEdit(c, r); };
+        tile.title = 'Click to play · Double-click to edit';
+      }
+      board.appendChild(tile);
+    }
+  }
+}
+
+// ── SCOREBOARD ──
+function updateScoreboard() {
+  for (let t = 0; t < 2; t++) {
+    document.getElementById(`label-${t}`).textContent = teams[t];
+    document.getElementById(`score-${t}`).textContent = scores[t];
+    document.getElementById(`card-${t}`).classList.toggle('active-turn', t === currentTurn);
+  }
+  document.getElementById('turn-label').textContent = teams[currentTurn];
+}
+
+// ── QUESTION MODAL ──
+function openQuestion(col, row) {
+  const key = `${col}_${row}`;
+  const cell = cells[key];
+  if (cell.used) return;
+  activeCell = { col, row };
+
+  document.getElementById('q-cat').textContent = categories[col];
+  document.getElementById('q-pts').textContent = `$${POINTS[row]}`;
+
+  const content = document.getElementById('q-content');
+  content.innerHTML = '';
+  if (cell.qtext) {
+    const p = document.createElement('p');
+    p.className = 'q-text';
+    p.textContent = cell.qtext;
+    content.appendChild(p);
+  }
+  if (cell.imgData) {
+    const img = document.createElement('img');
+    img.className = 'q-img';
+    img.src = cell.imgData;
+    content.appendChild(img);
+  }
+  if (!cell.qtext && !cell.imgData) {
+    const p = document.createElement('p');
+    p.className = 'q-text';
+    p.style.color = 'rgba(255,255,255,.35)';
+    p.textContent = `$${POINTS[row]} — No question set. Double-click the tile to edit.`;
+    content.appendChild(p);
+  }
+
+  document.getElementById('answer-text').textContent = cell.answer || '(no answer set)';
+  document.getElementById('answer-box').classList.remove('visible');
+  document.getElementById('score-btns').classList.remove('visible');
+  document.getElementById('reveal-btn').style.display = '';
+
+  // score buttons labels
+  document.getElementById('correct-t0').textContent = `✓ +$${POINTS[row]} → ${teams[0]}`;
+  document.getElementById('correct-t1').textContent = `✓ +$${POINTS[row]} → ${teams[1]}`;
+  document.getElementById('wrong-t0').textContent = `✗ -$${POINTS[row]} → ${teams[0]}`;
+  document.getElementById('wrong-t1').textContent = `✗ -$${POINTS[row]} → ${teams[1]}`;
+
+  document.getElementById('q-modal').classList.add('open');
+}
+
+document.getElementById('reveal-btn').onclick = () => {
+  document.getElementById('answer-box').classList.add('visible');
+  document.getElementById('score-btns').classList.add('visible');
+  document.getElementById('reveal-btn').style.display = 'none';
+};
+
+function closeQModal(markUsed = true) {
+  if (activeCell && markUsed) {
+    const key = `${activeCell.col}_${activeCell.row}`;
+    cells[key].used = true;
+    buildBoard();
+    checkGameOver();
+  }
+  activeCell = null;
+  document.getElementById('q-modal').classList.remove('open');
+}
+
+document.getElementById('q-close').onclick = () => closeQModal(false);
+
+// Scoring
+function awardPoints(teamIdx, sign) {
+  if (!activeCell) return;
+  const pts = POINTS[activeCell.row] * sign;
+  scores[teamIdx] = Math.max(0, scores[teamIdx] + pts);
+  updateScoreboard();
+  currentTurn = teamIdx === 0 ? 1 : 0;
+  updateScoreboard();
+  showToast(`${teams[teamIdx]} ${sign > 0 ? '+' : ''}${pts < 0 ? pts : '+' + pts} pts`);
+  closeQModal(true);
+}
+
+document.getElementById('correct-t0').onclick = () => awardPoints(0, 1);
+document.getElementById('correct-t1').onclick = () => awardPoints(1, 1);
+document.getElementById('wrong-t0').onclick = () => awardPoints(0, -1);
+document.getElementById('wrong-t1').onclick = () => awardPoints(1, -1);
+document.getElementById('skip-btn').onclick = () => {
+  currentTurn = currentTurn === 0 ? 1 : 0;
+  updateScoreboard();
+  closeQModal(true);
+};
+
+// ── EDIT CELL MODAL ──
+function openEdit(col, row) {
+  editTarget = { col, row };
+  const key = `${col}_${row}`;
+  const cell = cells[key];
+  document.getElementById('edit-title').textContent = `EDIT — ${categories[col]}`;
+  document.getElementById('edit-pts-badge').textContent = `$${POINTS[row]}`;
+  document.getElementById('edit-qtext').value = cell.qtext || '';
+  document.getElementById('edit-answer').value = cell.answer || '';
+  document.getElementById('img-file-name').textContent = 'No file chosen';
+  const prev = document.getElementById('img-preview');
+  if (cell.imgData) { prev.src = cell.imgData; prev.style.display = 'block'; }
+  else { prev.src = ''; prev.style.display = 'none'; }
+  document.getElementById('edit-img-input').value = '';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+document.getElementById('edit-img-input').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('img-file-name').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const prev = document.getElementById('img-preview');
+    prev.src = ev.target.result;
+    prev.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+};
+
+document.getElementById('edit-save').onclick = () => {
+  if (!editTarget) return;
+  const key = `${editTarget.col}_${editTarget.row}`;
+  cells[key].qtext = document.getElementById('edit-qtext').value.trim();
+  cells[key].answer = document.getElementById('edit-answer').value.trim();
+  const prev = document.getElementById('img-preview');
+  if (prev.src && prev.src !== window.location.href) cells[key].imgData = prev.src;
+  document.getElementById('edit-modal').classList.remove('open');
+  showToast('Cell saved!');
+};
+document.getElementById('edit-close').onclick = () => document.getElementById('edit-modal').classList.remove('open');
+document.getElementById('edit-cancel').onclick = () => document.getElementById('edit-modal').classList.remove('open');
+
+// ── EDIT CATEGORY MODAL ──
+function openCatEdit(col) {
+  editCatTarget = col;
+  document.getElementById('cat-input').value = categories[col];
+  document.getElementById('cat-modal').classList.add('open');
+}
+document.getElementById('cat-save').onclick = () => {
+  if (editCatTarget === null) return;
+  categories[editCatTarget] = document.getElementById('cat-input').value.trim() || categories[editCatTarget];
+  buildBoard();
+  document.getElementById('cat-modal').classList.remove('open');
+  showToast('Category updated!');
+};
+document.getElementById('cat-close').onclick = () => document.getElementById('cat-modal').classList.remove('open');
+document.getElementById('cat-cancel').onclick = () => document.getElementById('cat-modal').classList.remove('open');
+
+// ── EDIT TEAMS ──
+document.getElementById('edit-teams-link').onclick = (e) => {
+  e.preventDefault();
+  document.getElementById('team0-input').value = teams[0];
+  document.getElementById('team1-input').value = teams[1];
+  document.getElementById('teams-modal').classList.add('open');
+};
+document.getElementById('teams-save').onclick = () => {
+  teams[0] = document.getElementById('team0-input').value.trim() || teams[0];
+  teams[1] = document.getElementById('team1-input').value.trim() || teams[1];
+  updateScoreboard();
+  buildBoard(); // refresh score-btn labels if modal was open
+  document.getElementById('teams-modal').classList.remove('open');
+  showToast('Teams updated!');
+};
+document.getElementById('teams-close').onclick = () => document.getElementById('teams-modal').classList.remove('open');
+document.getElementById('teams-cancel').onclick = () => document.getElementById('teams-modal').classList.remove('open');
+
+// ── GAME OVER ──
+function checkGameOver() {
+  const allUsed = Object.values(cells).every(c => c.used);
+  if (!allUsed) return;
+  const winner = scores[0] > scores[1] ? 0 : scores[1] > scores[0] ? 1 : -1;
+  document.getElementById('winner-text').textContent =
+    winner === -1 ? "IT'S A TIE!" : `${teams[winner].toUpperCase()} WINS!`;
+  document.getElementById('winner-sub').textContent =
+    winner === -1
+      ? `Both teams: $${scores[0]}`
+      : `$${scores[winner]} vs $${scores[1 - winner]}`;
+  spawnConfetti();
+  document.getElementById('winner-splash').classList.add('open');
+}
+
+function spawnConfetti() {
+  const wrap = document.getElementById('confetti-wrap');
+  wrap.innerHTML = '';
+  const colors = ['#f5c518','#2233cc','#e63946','#1db954','#ff9f1c','#ffffff'];
+  for (let i = 0; i < 60; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetto';
+    c.style.cssText = `
+      left:${Math.random() * 100}%;
+      top:${-Math.random() * 20}px;
+      background:${colors[Math.floor(Math.random() * colors.length)]};
+      animation-duration:${1.8 + Math.random() * 2.5}s;
+      animation-delay:${Math.random() * 2}s;
+      width:${6 + Math.random() * 8}px;
+      height:${6 + Math.random() * 8}px;
+      border-radius:${Math.random() > .5 ? '50%' : '2px'};
+    `;
+    wrap.appendChild(c);
+  }
+}
+
+function resetGame() {
+  scores = [0, 0];
+  currentTurn = 0;
+  for (const k in cells) cells[k].used = false;
+  document.getElementById('winner-splash').classList.remove('open');
+  buildBoard();
+  updateScoreboard();
+  showToast('New game started!');
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── CLOSE MODALS ON BG CLICK ──
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => {
+    if (e.target === bg) {
+      if (bg.id === 'q-modal') closeQModal(false);
+      else bg.classList.remove('open');
+    }
+  });
+});
+
+// ── BOOT ──
+buildBoard();
+updateScoreboard();
+</script>
+</body>
+</html>

@@ -445,6 +445,9 @@
   &nbsp;·&nbsp; <a href="#" id="edit-mode-toggle" style="color:rgba(100,200,255,.55);font-size:.75rem;letter-spacing:1px;">✏️ edit mode</a>
   &nbsp;·&nbsp; <a href="#" id="edit-teams-link" style="color:rgba(255,255,255,.35);font-size:.75rem;letter-spacing:1px;">edit teams</a>
   &nbsp;·&nbsp; <a href="#" id="reset-link" style="color:rgba(255,100,100,.45);font-size:.75rem;letter-spacing:1px;">reset game</a>
+  &nbsp;·&nbsp; <a href="#" id="export-link" style="color:rgba(180,255,180,.45);font-size:.75rem;letter-spacing:1px;">⬇ export</a>
+  &nbsp;·&nbsp; <a href="#" id="import-link" style="color:rgba(180,255,180,.45);font-size:.75rem;letter-spacing:1px;">⬆ import</a>
+  <input type="file" id="import-file-input" accept=".json" style="display:none">
 </div>
 
 <!-- Board -->
@@ -939,6 +942,49 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
     }
   });
 });
+
+// ── EXPORT / IMPORT ──
+document.getElementById('export-link').onclick = (e) => {
+  e.preventDefault();
+  const state = { categories, cells, teams, scores, currentTurn };
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'jeopardy-save.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Game exported!');
+};
+
+document.getElementById('import-link').onclick = (e) => {
+  e.preventDefault();
+  document.getElementById('import-file-input').click();
+};
+
+document.getElementById('import-file-input').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const state = JSON.parse(ev.target.result);
+      if (state.categories) categories = state.categories;
+      if (state.cells) cells = state.cells;
+      if (state.teams) teams = state.teams;
+      if (state.scores) scores = state.scores;
+      if (typeof state.currentTurn === 'number') currentTurn = state.currentTurn;
+      buildBoard();
+      updateScoreboard();
+      saveState();
+      showToast('Game imported!');
+    } catch(err) {
+      showToast('Invalid file — could not import.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
 
 // ── BOOT ──
 loadState();

@@ -556,10 +556,33 @@ let editCatTarget = null; // col index
 // question modal tracking
 let activeCell = null; // { col, row }
 
+// ── SAVE / LOAD ──
+const STORAGE_KEY = 'jeopardy_state_v1';
+
+function saveState() {
+  const state = { categories, cells, teams, scores, currentTurn };
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    if (state.categories) categories = state.categories;
+    if (state.cells) cells = state.cells;
+    if (state.teams) teams = state.teams;
+    if (state.scores) scores = state.scores;
+    if (typeof state.currentTurn === 'number') currentTurn = state.currentTurn;
+    return true;
+  } catch(e) { return false; }
+}
+
 // ── INIT CELLS ──
 for (let c = 0; c < COLS; c++)
   for (let r = 0; r < ROWS; r++)
-    cells[`${c}_${r}`] = { qtext: '', answer: '', imgData: null, used: false };
+    if (!cells[`${c}_${r}`])
+      cells[`${c}_${r}`] = { qtext: '', answer: '', imgData: null, used: false };
 
 // ── BUILD BOARD ──
 function buildBoard() {
@@ -705,6 +728,7 @@ function awardPoints(teamIdx, sign) {
   updateScoreboard();
   showToast(`${teams[teamIdx]} ${sign > 0 ? '+' : ''}${pts < 0 ? pts : '+' + pts} pts`);
   closeQModal(true);
+  saveState();
 }
 
 document.getElementById('correct-t0').onclick = () => awardPoints(0, 1);
@@ -715,6 +739,7 @@ document.getElementById('skip-btn').onclick = () => {
   currentTurn = currentTurn === 0 ? 1 : 0;
   updateScoreboard();
   closeQModal(true);
+  saveState();
 };
 
 // ── EDIT CELL MODAL ──
@@ -755,6 +780,7 @@ document.getElementById('edit-save').onclick = () => {
   const prev = document.getElementById('img-preview');
   if (prev.src && prev.src !== window.location.href) cells[key].imgData = prev.src;
   document.getElementById('edit-modal').classList.remove('open');
+  saveState();
   showToast('Cell saved!');
 };
 document.getElementById('edit-close').onclick = () => document.getElementById('edit-modal').classList.remove('open');
@@ -771,6 +797,7 @@ document.getElementById('cat-save').onclick = () => {
   categories[editCatTarget] = document.getElementById('cat-input').value.trim() || categories[editCatTarget];
   buildBoard();
   document.getElementById('cat-modal').classList.remove('open');
+  saveState();
   showToast('Category updated!');
 };
 document.getElementById('cat-close').onclick = () => document.getElementById('cat-modal').classList.remove('open');
@@ -787,8 +814,9 @@ document.getElementById('teams-save').onclick = () => {
   teams[0] = document.getElementById('team0-input').value.trim() || teams[0];
   teams[1] = document.getElementById('team1-input').value.trim() || teams[1];
   updateScoreboard();
-  buildBoard(); // refresh score-btn labels if modal was open
+  buildBoard();
   document.getElementById('teams-modal').classList.remove('open');
+  saveState();
   showToast('Teams updated!');
 };
 document.getElementById('teams-close').onclick = () => document.getElementById('teams-modal').classList.remove('open');
@@ -837,6 +865,7 @@ function resetGame() {
   document.getElementById('winner-splash').classList.remove('open');
   buildBoard();
   updateScoreboard();
+  saveState();
   showToast('New game started!');
 }
 
@@ -861,6 +890,7 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
 });
 
 // ── BOOT ──
+loadState();
 buildBoard();
 updateScoreboard();
 </script>

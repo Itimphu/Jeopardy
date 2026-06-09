@@ -437,7 +437,7 @@
   </div>
 </div>
 
-<div class="turn-bar">TURN: <span id="turn-label">Team Alpha</span> &nbsp;·&nbsp; <a href="#" id="edit-teams-link" style="color:rgba(255,255,255,.35);font-size:.75rem;letter-spacing:1px;">edit teams</a></div>
+<div class="turn-bar">TURN: <span id="turn-label">Team Alpha</span> &nbsp;·&nbsp; <a href="#" id="edit-teams-link" style="color:rgba(255,255,255,.35);font-size:.75rem;letter-spacing:1px;">edit teams</a> &nbsp;·&nbsp; <a href="#" id="reset-link" style="color:rgba(255,100,100,.45);font-size:.75rem;letter-spacing:1px;">reset game</a></div>
 
 <!-- Board -->
 <div class="board-wrap">
@@ -820,6 +820,13 @@ document.getElementById('teams-save').onclick = () => {
   showToast('Teams updated!');
 };
 document.getElementById('teams-close').onclick = () => document.getElementById('teams-modal').classList.remove('open');
+
+document.getElementById('reset-link').onclick = (e) => {
+  e.preventDefault();
+  if (confirm('Reset the game? Scores and used tiles will be cleared. Questions and categories are kept.')) {
+    resetGame();
+  }
+};
 document.getElementById('teams-cancel').onclick = () => document.getElementById('teams-modal').classList.remove('open');
 
 // ── GAME OVER ──

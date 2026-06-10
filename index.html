@@ -21,12 +21,18 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html, body {
+    height: 100%;
+  }
   body {
     background: var(--blue);
     font-family: 'Barlow Condensed', sans-serif;
-    min-height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     color: var(--white);
-    overflow-x: hidden;
   }
 
   /* ── SCANLINE OVERLAY ── */
@@ -41,12 +47,12 @@
   /* ── HEADER ── */
   header {
     text-align: center;
-    padding: 8px 20px 4px;
+    padding: 14px 20px 6px;
     position: relative;
   }
   header h1 {
     font-family: 'Anton', sans-serif;
-    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-size: clamp(2.8rem, 7vw, 5rem);
     color: var(--gold);
     letter-spacing: 4px;
     text-shadow: 0 0 30px rgba(245,197,24,.5), 3px 3px 0 #7a5e00;
@@ -112,21 +118,29 @@
   /* ── BOARD ── */
   .board-wrap {
     max-width: 760px;
+    width: 100%;
     margin: 0 auto;
-    padding: 0 12px 12px;
+    padding: 0 12px 10px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
   .board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto repeat(4, 0.45fr);
     gap: 6px;
+    flex: 1;
+    min-height: 0;
   }
   .cat-header {
     background: var(--blue-mid);
     border: 2px solid rgba(255,255,255,.15);
     border-radius: 8px;
     text-align: center;
-    padding: 8px 6px;
-    font-size: clamp(.7rem, 1.8vw, .85rem);
+    padding: 14px 8px;
+    font-size: clamp(.85rem, 2vw, 1.1rem);
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -151,7 +165,8 @@
     border-radius: 8px;
     text-align: center;
     padding: 6px;
-    height: var(--card-h);
+    height: 100%;
+    min-height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -16,7 +16,7 @@
     --gray: #888;
     --green: #1db954;
     --red: #e63946;
-    --card-h: 80px;
+    --card-h: 62px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,21 +41,21 @@
   /* ── HEADER ── */
   header {
     text-align: center;
-    padding: 18px 20px 10px;
+    padding: 8px 20px 4px;
     position: relative;
   }
   header h1 {
     font-family: 'Anton', sans-serif;
-    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
     color: var(--gold);
     letter-spacing: 4px;
     text-shadow: 0 0 30px rgba(245,197,24,.5), 3px 3px 0 #7a5e00;
   }
   header p {
-    font-size: .85rem;
+    font-size: .75rem;
     color: rgba(255,255,255,.45);
     letter-spacing: 2px;
-    margin-top: 2px;
+    margin-top: 1px;
   }
 
   /* ── SCOREBOARD ── */
@@ -63,15 +63,15 @@
     display: flex;
     justify-content: center;
     gap: 20px;
-    padding: 10px 20px 14px;
+    padding: 4px 20px 8px;
     flex-wrap: wrap;
   }
   .team-card {
     background: rgba(255,255,255,.06);
     border: 1px solid rgba(255,255,255,.12);
     border-radius: 10px;
-    padding: 10px 24px;
-    min-width: 160px;
+    padding: 6px 20px;
+    min-width: 140px;
     text-align: center;
     position: relative;
     transition: border-color .3s;
@@ -86,7 +86,7 @@
   }
   .team-card .team-score {
     font-family: 'Anton', sans-serif;
-    font-size: 2.2rem;
+    font-size: 1.7rem;
     color: var(--gold);
     line-height: 1;
   }
@@ -113,20 +113,20 @@
   .board-wrap {
     max-width: 760px;
     margin: 0 auto;
-    padding: 0 12px 24px;
+    padding: 0 12px 12px;
   }
   .board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 6px;
   }
   .cat-header {
     background: var(--blue-mid);
     border: 2px solid rgba(255,255,255,.15);
     border-radius: 8px;
     text-align: center;
-    padding: 12px 8px;
-    font-size: clamp(.75rem, 2vw, .95rem);
+    padding: 8px 6px;
+    font-size: clamp(.7rem, 1.8vw, .85rem);
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -150,14 +150,14 @@
     border: 2px solid rgba(255,255,255,.1);
     border-radius: 8px;
     text-align: center;
-    padding: 10px;
+    padding: 6px;
     height: var(--card-h);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     font-family: 'Anton', sans-serif;
-    font-size: clamp(1.3rem, 3.5vw, 1.9rem);
+    font-size: clamp(1rem, 2.8vw, 1.5rem);
     color: var(--gold);
     text-shadow: 1px 1px 0 #7a5e00;
     transition: transform .15s, background .2s, opacity .2s;

@@ -16,46 +16,17 @@
     --gray: #888;
     --green: #1db954;
     --red: #e63946;
-    --card-h: 62px;
+    --card-h: 100px;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html { height: 100%; }
   body {
     background: var(--blue);
     font-family: 'Barlow Condensed', sans-serif;
+    min-height: 100vh;
     color: var(--white);
-    /* Desktop: lock to viewport, no scroll */
-    height: 100vh;
-    max-height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  /* Mobile: let it scroll naturally */
-  @media (max-width: 600px), (max-height: 700px) {
-    body {
-      height: auto;
-      max-height: none;
-      overflow-x: hidden;
-      overflow-y: auto;
-      display: block;
-    }
-    .board-wrap {
-      flex: none !important;
-      display: block !important;
-    }
-    .board {
-      display: grid !important;
-      grid-template-rows: none !important;
-      flex: none !important;
-      min-height: 0 !important;
-    }
-    .tile {
-      height: 70px !important;
-      min-height: 70px !important;
-    }
+    overflow-x: hidden;
   }
 
   /* ── SCANLINE OVERLAY ── */
@@ -70,21 +41,21 @@
   /* ── HEADER ── */
   header {
     text-align: center;
-    padding: 6px 20px 2px;
+    padding: 18px 20px 10px;
     position: relative;
   }
   header h1 {
     font-family: 'Anton', sans-serif;
-    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-size: clamp(2.4rem, 6vw, 4rem);
     color: var(--gold);
     letter-spacing: 4px;
     text-shadow: 0 0 30px rgba(245,197,24,.5), 3px 3px 0 #7a5e00;
   }
   header p {
-    font-size: .65rem;
+    font-size: .85rem;
     color: rgba(255,255,255,.45);
     letter-spacing: 2px;
-    margin-top: 0;
+    margin-top: 2px;
   }
 
   /* ── SCOREBOARD ── */
@@ -92,15 +63,15 @@
     display: flex;
     justify-content: center;
     gap: 20px;
-    padding: 2px 20px 4px;
+    padding: 10px 20px 14px;
     flex-wrap: wrap;
   }
   .team-card {
     background: rgba(255,255,255,.06);
     border: 1px solid rgba(255,255,255,.12);
     border-radius: 10px;
-    padding: 4px 16px;
-    min-width: 120px;
+    padding: 10px 24px;
+    min-width: 160px;
     text-align: center;
     position: relative;
     transition: border-color .3s;
@@ -115,7 +86,7 @@
   }
   .team-card .team-score {
     font-family: 'Anton', sans-serif;
-    font-size: 1.4rem;
+    font-size: 2.2rem;
     color: var(--gold);
     line-height: 1;
   }
@@ -131,39 +102,31 @@
   /* ── TURN INDICATOR ── */
   .turn-bar {
     text-align: center;
-    font-size: .7rem;
+    font-size: .8rem;
     letter-spacing: 2px;
     color: rgba(255,255,255,.5);
-    margin-bottom: 4px;
+    margin-bottom: 10px;
   }
   .turn-bar span { color: var(--gold); font-weight: 700; }
 
   /* ── BOARD ── */
   .board-wrap {
     max-width: 760px;
-    width: 100%;
     margin: 0 auto;
-    padding: 0 10px 6px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
+    padding: 0 12px 24px;
   }
   .board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: auto repeat(4, 1fr);
-    gap: 4px;
-    flex: 1;
-    min-height: 0;
+    gap: 8px;
   }
   .cat-header {
     background: var(--blue-mid);
     border: 2px solid rgba(255,255,255,.15);
     border-radius: 8px;
     text-align: center;
-    padding: 10px 6px;
-    font-size: clamp(.85rem, 2vw, 1.1rem);
+    padding: 12px 8px;
+    font-size: clamp(.75rem, 2vw, .95rem);
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -187,15 +150,14 @@
     border: 2px solid rgba(255,255,255,.1);
     border-radius: 8px;
     text-align: center;
-    padding: 6px;
-    height: 100%;
-    min-height: 28px;
+    padding: 10px;
+    height: var(--card-h);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     font-family: 'Anton', sans-serif;
-    font-size: clamp(1rem, 2.8vw, 1.5rem);
+    font-size: clamp(1.3rem, 3.5vw, 1.9rem);
     color: var(--gold);
     text-shadow: 1px 1px 0 #7a5e00;
     transition: transform .15s, background .2s, opacity .2s;
@@ -591,8 +553,8 @@
 
 <script>
 // ── STATE ──
-const COLS = 3, ROWS = 4;
-const POINTS = [50, 100, 200, 300];
+const COLS = 3, ROWS = 3;
+const POINTS = [100, 200, 300];
 
 let categories = ['Category 1', 'Category 2', 'Category 3'];
 let cells = {}; // key: "col_row" → { qtext, answer, imgData, used }
@@ -609,25 +571,18 @@ let editCatTarget = null; // col index
 let activeCell = null; // { col, row }
 
 // ── SAVE / LOAD ──
-const STORAGE_KEY = 'jeopardy_state_v2';
+const STORAGE_KEY = 'jeopardy_state_v1';
 
 function saveState() {
-  const state = { version: 2, cols: COLS, rows: ROWS, categories, cells, teams, scores, currentTurn };
+  const state = { categories, cells, teams, scores, currentTurn };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
 }
 
 function loadState() {
   try {
-    // Clear any old v1 save
-    localStorage.removeItem('jeopardy_state_v1');
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
     const state = JSON.parse(raw);
-    // Discard save if it was for a different grid size
-    if (state.rows !== ROWS || state.cols !== COLS) {
-      localStorage.removeItem(STORAGE_KEY);
-      return false;
-    }
     if (state.categories) categories = state.categories;
     if (state.cells) cells = state.cells;
     if (state.teams) teams = state.teams;

@@ -609,18 +609,25 @@ let editCatTarget = null; // col index
 let activeCell = null; // { col, row }
 
 // ── SAVE / LOAD ──
-const STORAGE_KEY = 'jeopardy_state_v1';
+const STORAGE_KEY = 'jeopardy_state_v2';
 
 function saveState() {
-  const state = { categories, cells, teams, scores, currentTurn };
+  const state = { version: 2, cols: COLS, rows: ROWS, categories, cells, teams, scores, currentTurn };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
 }
 
 function loadState() {
   try {
+    // Clear any old v1 save
+    localStorage.removeItem('jeopardy_state_v1');
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
     const state = JSON.parse(raw);
+    // Discard save if it was for a different grid size
+    if (state.rows !== ROWS || state.cols !== COLS) {
+      localStorage.removeItem(STORAGE_KEY);
+      return false;
+    }
     if (state.categories) categories = state.categories;
     if (state.cells) cells = state.cells;
     if (state.teams) teams = state.teams;
